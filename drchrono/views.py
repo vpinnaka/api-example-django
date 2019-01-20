@@ -1,9 +1,18 @@
-from django.shortcuts import redirect
-from django.views.generic import TemplateView
+from django.shortcuts import redirect, render
+from django.views.generic import TemplateView, View
 from social_django.models import UserSocialAuth
+from django.http import JsonResponse
+from django.core import serializers
+from .models import Doctor, Appointment
 from django.utils import timezone
-import datetime
-from drchrono.endpoints import DoctorEndpoint, AppointmentEndpoint
+from datetime import datetime
+import pytz
+import settings
+
+from drchrono.endpoints import (
+    DoctorEndpoint,
+    AppointmentEndpoint,
+    PatientEndpoint)
 
 
 class SetupView(TemplateView):
@@ -21,8 +30,8 @@ class DoctorWelcome(TemplateView):
 
     def get_token(self):
         """
-        Social Auth module is configured to store our access tokens. This dark magic will fetch it for us if we've
-        already signed in.
+        Social Auth module is configured to store our access tokens. This dark
+        magic will fetch it for us if we've already signed in.
         """
         oauth_provider = UserSocialAuth.objects.get(provider='drchrono')
         access_token = oauth_provider.extra_data['access_token']
@@ -30,22 +39,72 @@ class DoctorWelcome(TemplateView):
 
     def make_api_request(self):
         """
-        Use the token we have stored in the DB to make an API request and get doctor details. If this succeeds, we've
-        proved that the OAuth setup is working
+        Use the token we have stored in the DB to make an API request and get
+        doctor details. If this succeeds, we've proved that the OAuth setup is working
         """
         # We can create an instance of an endpoint resource class, and use it to fetch details
         access_token = self.get_token()
-        api = DoctorEndpoint(access_token)
-        # Grab the first doctor from the list; normally this would be the whole practice group, but your hackathon
-        # account probably only has one doctor in it.
-        appointments = AppointmentEndpoint(access_token)
-        return (next(api.list()), appointments.list(date=datetime.datetime.now()))
+        self.request.session['access_token'] = access_token
+
+        doctor_api = DoctorEndpoint(access_token)
+        patient_api = PatientEndpoint(access_token)
+        apppointment_api = AppointmentEndpoint(access_token)
+
+        # Grab the first doctor from the list; normally this would be the whole
+        # practice group, but your hackathon account probably only has one doctor in it.
+        doctor = doctor_api.get_and_store_data()
+        self.request.session['doctor'] = doctor.id
+        # Get patients and appointments for the doctor and store it in the local DB
+        patient_api.store_data(doctor=doctor)
+
+        date = datetime.now(tz=pytz.timezone(
+            doctor.timezone)).strftime('%Y-%m-%d')
+        apppointment_api.store_data(doctor=doctor, date=date)
+
+        return doctor
 
     def get_context_data(self, **kwargs):
         kwargs = super(DoctorWelcome, self).get_context_data(**kwargs)
         # Hit the API using one of the endpoints just to prove that we can
         # If this works, then your oAuth setup is working correctly.
-        doctor_details, appointments = self.make_api_request()
+        doctor_details = self.make_api_request()
         kwargs['doctor'] = doctor_details
-        kwargs['appointments'] = list(appointments)
         return kwargs
+
+
+class AppointmentsView(TemplateView):
+    """
+    The doctor can see what appointments they have today.
+    """
+    template_name = 'appointment_view.html'
+
+    def get_context_data(self, **kwargs):
+        kwargs = super(AppointmentsView, self).get_context_data(**kwargs)
+        # Hit the API using one of the endpoints just to prove that we can
+        # If this works, then your oAuth setup is working correctly.
+        # appointments = self.make_api_request()
+
+        kwargs['appointments'] = Appointment.objects.all()
+        return kwargs
+
+
+class AppointmentListView(View):
+
+    def get(self, request):
+        # access_token = request.session['access_token']
+        # doctor = request.session['doctor']
+        # apppointment_api = AppointmentEndpoint(access_token)
+        # date = datetime.now(tz=pytz.timezone(
+        #     doctor.timezone)).strftime('%Y-%m-%d')
+        # apppointment_api.store_data(doctor=doctor, date=date)
+        context = {
+            'current': Appointment.objects.filter(queue_status='current'),
+            'future': Appointment.objects.filter(queue_status='future'),
+            'past': Appointment.objects.filter(queue_status='past'),
+        }
+        if settings.DEBUG:
+            # Let's log the facets for review when debugging
+            import logging
+            logger = logging.getLogger(__name__)
+            logger.info(context)
+        return render(request, 'appointment_list.html', context)

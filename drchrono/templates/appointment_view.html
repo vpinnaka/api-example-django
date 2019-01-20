@@ -1,0 +1,26 @@
+{% extends "./base.html" %}
+{% load staticfiles %}
+{% block title %}Welcome to drchrono{% endblock %}
+{% block body %}
+<button id='refresh'>Refresh</button>
+<div id='appointment_list'>
+    {% include './appointment_list.html' %}
+</div>
+{% endblock body %}
+{% block script %}
+<script>
+    function getappointments() {
+        $.ajax({
+            type: "GET",
+            url: "/appointments_list",
+            success: function (data) {
+                $('#appointment_list').html(data);
+            }
+        });
+    }
+    $(document).ready(function () {
+        getappointments();
+        setInterval(getappointments, 3000);
+    });
+</script>
+{% endblock script %}

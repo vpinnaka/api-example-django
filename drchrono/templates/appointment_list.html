@@ -1,0 +1,53 @@
+<div class="container">
+
+    <h1>Seeing Now</h1>
+    <fieldset>
+        <legend>Patient details</legend>
+        {% for appointment in current%}
+        Name: {{ appointment.patient_name }}<br>
+        Gender: {{ appointment.patient.gender }}<br>
+        Scheduled time: {{ appointment.appointment_time }}<br>
+        Duration: {{ appointment.duration }} min.<br>
+        Reason : {{ appointment.reason }}<br>
+        {% endfor%}
+    </fieldset>
+
+</div>
+<div class="container">
+    <h1>Future Appointments</h1>
+    <table class="table">
+        <tr>
+            <th>Appointment time</th>
+            <th>Duration</th>
+            <th>Patient Name</th>
+            <th>Current Status</th>
+        </tr>
+        {% for appointment in future%}
+        <tr>
+            <td>{{ appointment.appointment_time }}</td>
+            <td>{{ appointment.duration }} min</td>
+            <td>{{ appointment.patient_name }}</td>
+            <td>{{ appointment.appointment_status }}</td>
+        </tr>
+        {% endfor%}
+    </table>
+</div>
+<div class="container">
+    <h1>Past Appointments</h1>
+    <table class="table">
+        <tr>
+            <th>Appointment time</th>
+            <th>Duration</th>
+            <th>Patient Name</th>
+            <th>Current Status</th>
+        </tr>
+        {% for appointment in past%}
+        <tr>
+            <td>{{ appointment.appointment_time }}</td>
+            <td>{{ appointment.duration }} min</td>
+            <td>{{ appointment.patient_name }}</td>
+            <td>{{ appointment.appointment_status }}</td>
+        </tr>
+        {% endfor%}
+    </table>
+</div>

@@ -3,18 +3,8 @@
 {% block body %}
 
 <h1>Welcome {{ doctor.first_name }} {{ doctor.last_name }}</h1>
-<table class="table">
-    <tr>
-        <th>Appointment time</th>
-        <th>Patient Name</th>
-        <th>Current Status</th>
-    </tr>
-    {% for appointment in appointments%}
-    <tr>
-        <td>{{ appointment.scheduled_time }}</td>
-        <td>{{ appointment.patient }}</td>
-        <td>{{ appointment.status }}</td>
-    </tr>
-    {% endfor%}
-</table>
+
+<a href="/appointments" class="button">
+    Appointments
+</a>
 {% endblock %}
