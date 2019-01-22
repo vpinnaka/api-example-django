@@ -1,26 +1,90 @@
 {% extends "./base.html" %}
 {% load staticfiles %}
+{% csrf_token %}
 {% block title %}Welcome to drchrono{% endblock %}
 {% block body %}
-<button id='refresh'>Refresh</button>
+<div>
+    <div id='appointment_current'>
+        {% include './appointment_current.html' %}
+    </div>
+    <button id='complete'>Complete</button>
+</div>
 <div id='appointment_list'>
     {% include './appointment_list.html' %}
 </div>
 {% endblock body %}
 {% block script %}
 <script>
-    function getappointments() {
+    function getCookie(c_name) {
+        if (document.cookie.length > 0) {
+            c_start = document.cookie.indexOf(c_name + "=");
+            if (c_start != -1) {
+                c_start = c_start + c_name.length + 1;
+                c_end = document.cookie.indexOf(";", c_start);
+                if (c_end == -1) c_end = document.cookie.length;
+                return unescape(document.cookie.substring(c_start, c_end));
+            }
+        }
+        return "";
+    }
+
+    function getappointments(appointmentlisttype) {
+        console.log(appointmentlisttype);
         $.ajax({
             type: "GET",
-            url: "/appointments_list",
+            url: "{% url 'appointment_list' %}",
+            data: {
+                'listtype': appointmentlisttype,
+                'csrfmiddlewaretoken': $('input[name="csrfmiddlewaretoken"]').val()
+            },
             success: function (data) {
-                $('#appointment_list').html(data);
+                if (appointmentlisttype.localeCompare('current') == 0) {
+                    $('#appointment_current').html(data);
+                } else {// Load the templete with future and past appointments
+                    $('#appointment_list').html(data);
+                }
             }
+
+        });
+    }
+
+    function updateappointment(appointmentupdatetype, appointmentstatus) {
+        $.ajax({
+            type: "POST",
+            url: "{% url 'appointment_list' %}",
+            headers: { "X-CSRFToken": getCookie("csrftoken") },
+            data: {
+                'updatetype': appointmentupdatetype,
+                'status': appointmentstatus,
+                'csrfmiddlewaretoken': $('input[name="csrfmiddlewaretoken"]').val()
+            },
+            success: function (data) {
+                if ('status' in data) {
+                    var currentappointment = 'current';
+                    var otherappointments = 'other';
+                    getappointments(currentappointment);
+                    getappointments(otherappointments);
+                }
+            }
+
         });
     }
     $(document).ready(function () {
-        getappointments();
-        setInterval(getappointments, 3000);
+        var currentappointment = 'current';
+        var otherappointments = 'other';
+        getappointments(currentappointment);
+        getappointments(otherappointments);
+        window.setInterval(function () {
+            getappointments(otherappointments);
+        }, 60000)
+    });
+
+    $('#complete').click(function () {
+        var updatetype = 'current';
+        var status = 'Complete';
+        console.log("Appointment complete");
+        updateappointment(updatetype, status);
+
     });
 </script>
 {% endblock script %}

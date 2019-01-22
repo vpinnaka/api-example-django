@@ -1,5 +1,6 @@
 from django.db import models
 from django.utils import timezone
+from datetime import datetime
 # Add your models here
 
 
@@ -42,8 +43,54 @@ class Patient(models.Model):
             self.gender
         )
 
+    def get_age(self):
+        dob = datetime.strptime(self.date_of_birth, '%Y-%m-%d')
+        today = datetime.today()
+        return today.year - dob.year
+
+
+class CurrentAppointmentManager(models.Manager):
+    def get_queryset(self):
+        date = datetime.now()
+        return super(CurrentAppointmentManager, self).get_queryset()\
+            .filter(
+                appointment_time__year=date.year,
+                appointment_time__month=date.month,
+                appointment_time__day=date.day,
+                queue_status='current',
+        )
+
+
+class FutureAppointmentManager(models.Manager):
+    def get_queryset(self):
+        date = datetime.now()
+        return super(FutureAppointmentManager, self).get_queryset()\
+            .filter(
+                appointment_time__year=date.year,
+                appointment_time__month=date.month,
+                appointment_time__day=date.day,
+                queue_status='future',
+        )
+
+
+class PastAppointmentManager(models.Manager):
+    def get_queryset(self):
+        date = datetime.now()
+        return super(PastAppointmentManager, self).get_queryset()\
+            .filter(
+                appointment_time__year=date.year,
+                appointment_time__month=date.month,
+                appointment_time__day=date.day,
+                queue_status='past',
+        )
+
 
 class Appointment(models.Model):
+    objects = models.Manager()  # The default manger
+    current = CurrentAppointmentManager()
+    future = FutureAppointmentManager()
+    past = PastAppointmentManager()
+
     STATUS_CHOICE = (
         ('current', 'Current'),
         ('past', 'Past'),
@@ -56,13 +103,12 @@ class Appointment(models.Model):
     appointment_time = models.DateTimeField()
     appointment_status = models.CharField(max_length=50, null=True)
     duration = models.IntegerField()
-    created_at = models.DateField()
-    updated_at = models.DateField()
     checkedin_status = models.BooleanField(default=False)
     checkedin_time = models.DateTimeField(null=True)
-    waittime = models.IntegerField()
+    start_time = models.DateTimeField(null=True)
+    complete_time = models.DateTimeField(null=True)
     exam_room = models.IntegerField()
-    reason = models.CharField(max_length=200)
+    reason = models.CharField(max_length=200, null=True)
     queue_status = models.CharField(
         max_length=10, choices=STATUS_CHOICE, default='future')
 

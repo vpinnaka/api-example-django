@@ -1,0 +1,12 @@
+{% extends "./base.html" %}
+{% load staticfiles %}
+{% csrf_token %}
+{% block title %}Welcome to drchrono{% endblock %}
+{% block body %}
+<h2>Your Check-in successful</h2>
+<h2>Dr. {{ doctor.first_name}} welcomes you</h2>
+<h2>You have {{ checkedinno }} patients before you</h2>
+<a href="{% url 'checkin' %}" class='btn btn-success'>
+    Return to Check-in page
+</a>
+{% endblock body %}

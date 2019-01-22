@@ -1,0 +1,9 @@
+{% extends "./base.html" %}
+{% load staticfiles %}
+{% csrf_token %}
+{% block title %}Welcome to drchrono{% endblock %}
+{% block body %}
+<a href="{% url 'social:begin' 'drchrono' %}" class="btn btn-success">
+  Login into Doctor dashboard
+</a>
+{% endblock body %}

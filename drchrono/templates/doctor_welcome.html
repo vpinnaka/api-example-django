@@ -4,7 +4,13 @@
 
 <h1>Welcome {{ doctor.first_name }} {{ doctor.last_name }}</h1>
 
-<a href="/appointments" class="button">
+<a href="{% url 'appointments' %}" class="btn btn-success">
     Appointments
 </a>
+
+
+<a href="{% url 'checkin' %}" class="btn btn-success">
+    Kiosk
+</a>
+
 {% endblock %}

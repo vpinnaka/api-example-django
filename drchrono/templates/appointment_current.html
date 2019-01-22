@@ -1,0 +1,14 @@
+<div class="container" id="seeing_now">
+    <h1>Seeing Now</h1>
+    <fieldset>
+        <legend>Patient details</legend>
+        Name: {{ appointment.patient_name }}<br>
+        Gender: {{ appointment.patient.gender }}<br>
+        Age: {{ appointment.patient.get_age }} years<br>
+        Scheduled time: {{ appointment.appointment_time }}<br>
+        Duration: {{ appointment.duration }} min.<br>
+        Reason : {{ appointment.reason }}<br>
+
+    </fieldset>
+
+</div>

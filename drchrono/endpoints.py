@@ -164,10 +164,14 @@ class BaseEndpoint(object):
         """
         url = self._url(id)
         self._auth_headers(kwargs)
+        print url
+        print data
+        print kwargs
         if partial:
             response = requests.patch(url, data, **kwargs)
         else:
             response = requests.put(url, data, **kwargs)
+        print response
         return self._json_or_exception(response)
 
     def delete(self, id, **kwargs):
@@ -259,19 +263,21 @@ class AppointmentEndpoint(BaseEndpoint):
             patient = Patient.objects.get(id=appointment['patient'])
             patient_name = '{}, {}'.format(
                 patient.first_name, patient.last_name)
+            checkedin_status = False
+            if appointment['status'] == 'Checked In':
+                checkedin_status = True
             Appointment.objects.update_or_create(
                 pk=appointment['id'],
                 defaults={
                     'patient': patient,
                     'patient_name': patient_name,
                     'doctor': doctor,
-                    'appointment_time': utils.parse_iso_date_string(appointment['scheduled_time'], timezone),
+                    'appointment_time': appointment['scheduled_time'],
                     'appointment_status': appointment['status'],
                     'duration': appointment['duration'],
-                    'created_at': utils.parse_iso_date_string(appointment['created_at'], timezone),
-                    'updated_at': utils.parse_iso_date_string(appointment['updated_at'], timezone),
                     'exam_room': appointment['exam_room'],
                     'reason': appointment['reason'],
+                    'checkedin_status': checkedin_status,
                 }
             )
 
