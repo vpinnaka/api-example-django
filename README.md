@@ -1,5 +1,5 @@
 # drchrono Hackathon
-
+> Switch to develop branch for current progress on the app
 ### Doctor Dashboard
 
 Imagine you’re a busy doctor running a lean medical practice. Your receptionist doesn’t have time to print out your daily schedule, 
