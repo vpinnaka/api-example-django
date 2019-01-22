@@ -4,10 +4,22 @@
 {% block title %}Welcome to drchrono{% endblock %}
 {% block body %}
 <div>
-    <div id='appointment_current'>
-        {% include './appointment_current.html' %}
+    <div class="row">
+        <div class="col-sm">
+            <div id='appointment_current'>
+                {% include './appointment_current.html' %}
+            </div>
+        </div>
+        <div class="col-sm">
+
+        </div>
+        <div class="p-5 col-sm">
+            <button id='complete' class="btn btn-success">Complete</button><br><br>
+            <button id='complete' class="btn btn-danger">No Show</button>
+        </div>
     </div>
-    <button id='complete'>Complete</button>
+
+
 </div>
 <div id='appointment_list'>
     {% include './appointment_list.html' %}

@@ -3,7 +3,15 @@
 {% csrf_token %}
 {% block title %}Welcome to drchrono{% endblock %}
 {% block body %}
-<a href="{% url 'social:begin' 'drchrono' %}" class="btn btn-success">
-  Login into Doctor dashboard
-</a>
+<div class="container h-100">
+  <div class="p-5 row h-100 justify-content-center align-items-center">
+    <h1>Please login into dr. chrono app to start</h1>
+  </div>
+  <div class="p-5 row h-100 justify-content-center align-items-center">
+    <a href="{% url 'social:begin' 'drchrono' %}" class="btn btn-success">
+      Login into Doctor dashboard
+    </a>
+  </div>
+</div>
+
 {% endblock body %}

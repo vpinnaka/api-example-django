@@ -1,16 +1,30 @@
 {% extends "./base.html" %}
 {% block title %}Welcome to drchrono{% endblock %}
 {% block body %}
+<div class="container h-100">
+    <div class="p-5 row h-100 justify-content-center align-items-center">
+        <h1>Welcome {{ doctor.first_name }} {{ doctor.last_name }}</h1>
+    </div>
+    <div class="row h-100 justify-content-center align-items-center">
 
-<h1>Welcome {{ doctor.first_name }} {{ doctor.last_name }}</h1>
+        <div class="row">
+            <div class="p-5">
+                <a href="{% url 'appointments' %}" class="btn btn-success btn-circle btn-xl">
+                    Appointments
+                </a>
+            </div>
+            <div class="p-5">
+                <a href="{% url 'checkin' %}" class="btn btn-success btn-circle btn-xl">
+                    Kiosk
+                </a>
+            </div>
+        </div>
 
-<a href="{% url 'appointments' %}" class="btn btn-success">
-    Appointments
-</a>
+    </div>
 
-
-<a href="{% url 'checkin' %}" class="btn btn-success">
-    Kiosk
-</a>
+</div>
+<!-- <div>
+    
+</div> -->
 
 {% endblock %}

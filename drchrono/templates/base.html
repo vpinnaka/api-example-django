@@ -17,10 +17,19 @@
         crossorigin="anonymous"></script>
     <script src="https://maxcdn.bootstrapcdn.com/bootstrap/4.0.0/js/bootstrap.min.js" integrity="sha384-JZR6Spejh4U02d8jOt6vLEHfe/JQGiRRSQQxSfFWpi1MquVdAyjUar5+76PVCmYl"
         crossorigin="anonymous"></script>
+
+    <link href="{% static 'css/drchrono.css' %}" rel="stylesheet">
 </head>
 
 <body>
-    <div class="container">
+    <!-- Image and text -->
+    <nav class="navbar navbar-dark bg-dark">
+        <a class="navbar-brand" href="/welcome">
+            <img src="/static/img/drchrono_icon.png" width="30" height="30" class="d-inline-block align-top" alt="">
+            Dr.Chrono Hospitals
+        </a>
+    </nav>
+    <div class="container mx-auto">
         {% block body %}
         {% endblock %}
     </div>
