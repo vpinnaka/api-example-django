@@ -1,47 +1,52 @@
-<div class="container">
-    <h1>Future Appointments</h1>
-    <table class="table">
-        <tr>
-            <th>Appointment time</th>
-            <th>Duration</th>
-            <th>Patient Name</th>
-            <th>Checked In</th>
-            <th>Wait time</th>
-        </tr>
-        {% for appointment in future%}
-        <tr>
-            <td>{% load tz %}
-                {{ appointment.appointment_time|time }}</td>
-            <td>{{ appointment.duration }} min</td>
-            <td>{{ appointment.patient_name }}</td>
-            <td>{% if appointment.checkedin_status %}
-                <span class="glyphicon glyphicon-ok">Yes</span>
-                {% endif %}
-            </td>
-            <td>{% if appointment.checkedin_time %}
-                {{ appointment.checkedin_time|timesince }}
-                {% else %}
-                Not arrived
-                {% endif %}
-            </td>
-        </tr>
-        {% endfor%}
-    </table>
+<div class="card mt-5">
+    <div class="card-header">Future Appointments</div>
+    <div class="card-body">
+        <table class="table table-hover" id="future_appointments">
+            <tr>
+                <th class="text-center">Appointment time</th>
+                <th class="text-center">Duration</th>
+                <th class="text-center">Patient Name</th>
+                <th class="text-center">Checked In</th>
+                <th class="text-center">Wait time</th>
+            </tr>
+            {% for appointment in future%}
+            <tr>
+                <td class="text-center">{% load tz %}
+                    {{ appointment.appointment_time|time }}</td>
+                <td class="text-center">{{ appointment.duration }} min</td>
+                <td class="text-center">{{ appointment.patient_name }}</td>
+                <td class="text-center">{% if appointment.checkedin_status %}
+                    <span class="glyphicon glyphicon-ok">Yes</span>
+                    {% endif %}
+                </td>
+                <td class="text-center">{% if appointment.checkedin_time %}
+                    {{ appointment.checkedin_time|timesince }}
+                    {% else %}
+                    Not arrived
+                    {% endif %}
+                </td>
+            </tr>
+            {% endfor%}
+        </table>
+    </div>
 </div>
-<div class="container">
-    <h1>Past Appointments</h1>
-    <table class="table">
-        <tr>
-            <th>Appointment time</th>
-            <th>Patient Name</th>
-            <th>Current Status</th>
-        </tr>
-        {% for appointment in past%}
-        <tr>
-            <td>{{ appointment.appointment_time }}</td>
-            <td>{{ appointment.patient_name }}</td>
-            <td>{{ appointment.appointment_status }}</td>
-        </tr>
-        {% endfor%}
-    </table>
+
+<div class="card mt-5 mb-5">
+    <div class="card-header">Past Appointments</div>
+    <div class="card-body">
+        <table class="table table-hover">
+            <tr>
+                <th class="text-center">Appointment time</th>
+                <th class="text-center">Patient Name</th>
+                <th class="text-center">Current Status</th>
+            </tr>
+            {% for appointment in past%}
+            <tr>
+                <td class="text-center">{{ appointment.appointment_time }}</td>
+                <td class="text-center">{{ appointment.patient_name }}</td>
+                <td class="text-center">{{ appointment.appointment_status }}</td>
+            </tr>
+            {% endfor%}
+        </table>
+    </div>
 </div>

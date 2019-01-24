@@ -1,14 +1,26 @@
+{% load app_tags %}
 <div class="container" id="seeing_now">
-    <h1>Seeing Now</h1>
-    <fieldset>
-        <legend>Patient details</legend>
-        Name: {{ appointment.patient_name }}<br>
-        Gender: {{ appointment.patient.gender }}<br>
-        Age: {{ appointment.patient.get_age }} years<br>
-        Scheduled time: {{ appointment.appointment_time }}<br>
-        Duration: {{ appointment.duration }} min.<br>
-        Reason : {{ appointment.reason }}<br>
+    <h5 class="card-title">{{ appointment.patient_name }}</h5>
+    <div class="row">
+        <div class="col-6">
+            <p class="card-text">{{ appointment.patient.gender }}, {{ appointment.patient.get_age }} years</p>
+            {% ifequal appointment.appointment_status "In Session" %}
+            <p class="card-text">Session time left {{ appointment.get_time_left}} min</p>
+            <p class="card-text">Waited for {{ appointment.get_wait_time}} min</p>
+            {% else%}
+            {% if appointment.checkedin_status %}
+            <p class="card-text">patient checked-in not in session</p>
+            {% else %}
+            <p class="card-text">patient not checked in</p>
+            {% endif %}
+            {% endifequal %}
+        </div>
+        <div class="col-6">
+            <p class="float-right font-italic">Avg wait time {% get_avg_wait_time %} min</p>
+        </div>
+    </div>
 
-    </fieldset>
+
+    <p class="card-text"><small class="text-muted">Appointment Scheduled time {{ appointment.appointment_time }}</small></p>
 
 </div>

@@ -164,14 +164,14 @@ class BaseEndpoint(object):
         """
         url = self._url(id)
         self._auth_headers(kwargs)
-        print url
-        print data
-        print kwargs
+        # print url
+        # print data
+        # print kwargs
         if partial:
             response = requests.patch(url, data, **kwargs)
         else:
             response = requests.put(url, data, **kwargs)
-        print response
+        # print response
         return self._json_or_exception(response)
 
     def delete(self, id, **kwargs):
@@ -208,26 +208,25 @@ class PatientEndpoint(BaseEndpoint):
             raise Exception("Must provide doctor id")
         return super(PatientEndpoint, self).list(params, **kwargs)
 
-    def store_data(self, doctor):
+    def get_and_store_data(self, doctor):
         patients = self.list(doctor=doctor.id)
         for patient in patients:
-            Patient.objects.update_or_create(
-                pk=patient['id'],
-                defaults={
-                    'doctor': doctor,
-                    'first_name': patient['first_name'],
-                    'last_name': patient['last_name'],
-                    'social_security_number': patient['social_security_number'],
-                    'email': patient['email'],
-                    'gender': patient['gender'],
-                    'date_of_birth': patient['date_of_birth'],
-                    'address': patient['address'],
-                    'city': patient['city'],
-                    'state': patient['state'],
-                    'zip_code': patient['zip_code'],
-                    'cell_phone': patient['cell_phone'],
-                }
-            )
+            updated_fields = {
+                'doctor': doctor,
+                'first_name': patient['first_name'],
+                'last_name': patient['last_name'],
+                'social_security_number': patient['social_security_number'],
+                'email': patient['email'],
+                'gender': patient['gender'],
+                'date_of_birth': patient['date_of_birth'],
+                'address': patient['address'],
+                'city': patient['city'],
+                'state': patient['state'],
+                'zip_code': patient['zip_code'],
+                'cell_phone': patient['cell_phone'],
+            }
+            updated_patient, created = utils.update_or_create_object(
+                Patient, updated_fields, pk=patient['id'])
 
 
 class AppointmentEndpoint(BaseEndpoint):
@@ -251,35 +250,43 @@ class AppointmentEndpoint(BaseEndpoint):
                 "Must provide either start & end, or date argument")
         return super(AppointmentEndpoint, self).list(params, **kwargs)
 
-    def store_data(self, doctor, date):
+    def get_and_store_data(self, doctor=None, date=None):
         params = {}
-        timezone = pytz.timezone(settings.TIME_ZONE)
         # get all the appointments for today from the appointments api endpoint
+
         if doctor:
             params['doctor'] = doctor.id
-            timezone = pytz.timezone(doctor.timezone)
+        else:
+            doctor = utils.get_object_first(Doctor)
+
+        if date == None:
+            date = datetime.now(tz=pytz.timezone(
+                doctor.timezone)).strftime('%Y-%m-%d')
         appointments = self.list(params=params, date=date)
         for appointment in appointments:
-            patient = Patient.objects.get(id=appointment['patient'])
+            if appointment['status'] in ('Cancelled', 'Rescheduled'):
+                continue
+            patient = utils.get_object_or_none(
+                Patient, id=appointment['patient'])
             patient_name = '{}, {}'.format(
-                patient.first_name, patient.last_name)
-            checkedin_status = False
-            if appointment['status'] == 'Checked In':
-                checkedin_status = True
-            Appointment.objects.update_or_create(
-                pk=appointment['id'],
-                defaults={
-                    'patient': patient,
-                    'patient_name': patient_name,
-                    'doctor': doctor,
-                    'appointment_time': appointment['scheduled_time'],
-                    'appointment_status': appointment['status'],
-                    'duration': appointment['duration'],
-                    'exam_room': appointment['exam_room'],
-                    'reason': appointment['reason'],
-                    'checkedin_status': checkedin_status,
-                }
+                patient.first_name,
+                patient.last_name
             )
+            updated_fields = {
+                'patient': patient,
+                'patient_name': patient_name,
+                'doctor': doctor,
+                'appointment_time': appointment['scheduled_time'],
+                'appointment_status': appointment['status'],
+                'duration': appointment['duration'],
+                'exam_room': appointment['exam_room'],
+                'reason': appointment['reason'],
+            }
+
+            if appointment['status'] in ('Complete', 'No Show'):
+                updated_fields['queue_status'] = 'past'
+            updated_appointment, created = utils.update_or_create_object(
+                Appointment, updated_fields, pk=appointment['id'])
 
 
 class DoctorEndpoint(BaseEndpoint):

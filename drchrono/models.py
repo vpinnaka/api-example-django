@@ -105,8 +105,8 @@ class Appointment(models.Model):
     duration = models.IntegerField()
     checkedin_status = models.BooleanField(default=False)
     checkedin_time = models.DateTimeField(null=True)
-    start_time = models.DateTimeField(null=True)
-    complete_time = models.DateTimeField(null=True)
+    session_start_time = models.DateTimeField(null=True)
+    session_complete_time = models.DateTimeField(null=True)
     exam_room = models.IntegerField()
     reason = models.CharField(max_length=200, null=True)
     queue_status = models.CharField(
@@ -117,3 +117,13 @@ class Appointment(models.Model):
 
     def __str__(self):
         return '{} appointment at {}'.format(self.patient, self.appointment_time)
+
+    def get_wait_time(self):
+        if self.checkedin_time and self.checkedin_status:
+            return int((self.session_start_time - self.checkedin_time).total_seconds() // 60)
+        return 0
+
+    def get_time_left(self):
+        time_elapsed = int(
+            (datetime.now() - self.session_start_time).total_seconds() // 60)
+        return self.duration - time_elapsed

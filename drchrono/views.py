@@ -61,11 +61,11 @@ class DoctorWelcome(TemplateView):
         doctor = doctor_api.get_and_store_data()
         self.request.session['doctor'] = doctor.id
         # Get patients and appointments for the doctor and store it in the local DB
-        patient_api.store_data(doctor=doctor)
+        patient_api.get_and_store_data(doctor=doctor)
 
         date = datetime.now(tz=pytz.timezone(
             doctor.timezone)).strftime('%Y-%m-%d')
-        apppointment_api.store_data(doctor=doctor, date=date)
+        apppointment_api.get_and_store_data(doctor=doctor, date=date)
 
         return doctor
 
@@ -109,13 +109,17 @@ class AppointmentListView(View):
                     nextappointment.queue_status = 'current'
                     nextappointment.save()
                     response_data = nextappointment
+            if response_data == None:
+                return JsonResponse({"data": None})
             context = {
                 'appointment': response_data,
             }
             return render(request, 'appointment_current.html', context)
 
         else:
-            # TODO: Add the logic to get the data from sessions for checkin appointments and update the data
+            access_token = self.request.session.get('access_token')
+            apppointment_api = AppointmentEndpoint(access_token)
+            apppointment_api.get_and_store_data()
             context = {
                 'future': Appointment.future.all(),
                 'past': Appointment.past.all(),
@@ -123,9 +127,9 @@ class AppointmentListView(View):
             return render(request, 'appointment_list.html', context)
 
     def post(self, request):
-        access_token = self.request.session['access_token']
+        access_token = self.request.session.get('access_token')
         apppointment_api = AppointmentEndpoint(access_token)
-        if self.request.is_ajax() and self.request.POST.get('updatetype') == 'current':
+        if self.request.is_ajax() and self.request.POST.get('status'):
             appointment = Appointment.current.first()
             if appointment:
                 appointment_id = appointment.id
@@ -140,35 +144,15 @@ class AppointmentListView(View):
                 try:
                     response = apppointment_api.update(appointment_id, data)
                     appointment.appointment_status = appointment_status
-                    appointment.queue_status = 'past'
+                    if appointment_status == 'In Session':
+                        appointment.session_start_time = datetime.now()
+                    elif appointment_status in ('Complete', 'No Show'):
+                        appointment.session_complete_time = datetime.now()
+                        appointment.queue_status = 'past'
                     appointment.save()
                 except APIException:
                     return JsonResponse({"status": "false"}, status=500)
-            return JsonResponse({"status": "true"})
-        elif self.request.POST.has_key('appointment_id'):
-            appointment_id = self.request.POST.get('appointment_id')
-            appointment_status = self.request.POST.get('status')
-            appointment = Appointment.objects.get(pk=appointment_id)
-            appointment.appointment_status = appointment_status
-            appointment.checkedin_time = datetime.now()
-            appointment.save()
-            # put the checkedin appointments in sessions
-            checkedin_appointments = self.request.session.get(
-                'checkedin_appointment', [])
-            checkedin_appointments.append(appointment_id)
-            self.request.session.get['checkedin_appointment'] = checkedin_appointments
-
-            updateddate = datetime.now().strftime('%Y-%m-%dT%H:%M:%S')
-            data = {
-                'status': appointment_status,
-                'updated_at': updateddate
-            }
-            response = {}
-            try:
-                response = apppointment_api.update(appointment_id, data)
-            except APIException:
-                return JsonResponse({"status": "false"}, status=500)
-            return JsonResponse({"response": response})
+        return JsonResponse({"status": "true"})
 
 
 class CheckinView(FormView):
@@ -237,5 +221,5 @@ class CheckinSuccessView(TemplateView):
 
         kwargs['doctor'] = Doctor.objects.first()
         kwargs['checkedinno'] = len(
-            Appointment.objects.filter(checkedin_status=True))
+            Appointment.future.filter(checkedin_status=True))
         return kwargs
