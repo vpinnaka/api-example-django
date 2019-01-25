@@ -164,14 +164,12 @@ class BaseEndpoint(object):
         """
         url = self._url(id)
         self._auth_headers(kwargs)
-        print url
-        print data
-        print kwargs
+
         if partial:
             response = requests.patch(url, data, **kwargs)
         else:
             response = requests.put(url, data, **kwargs)
-        print response
+
         return self._json_or_exception(response)
 
     def delete(self, id, **kwargs):

@@ -99,7 +99,7 @@ class AppointmentListView(View):
     def get(self, request):
         if self.request.is_ajax() and self.request.GET.get('listtype') == 'current':
             current_appointment = Appointment.current.first()
-            # print current_appointment
+
             response_data = None
             if current_appointment:
                 response_data = current_appointment
@@ -195,7 +195,7 @@ class CheckinView(FormView):
                     response = apppointment_api.update(appointment.id, data)
                     updated_appointment, created = update_or_create_object(
                         Appointment, updated_fields, pk=appointment.id)
-                    print response
+
                     self.request.session['checkedin_patient'] = patient.id
                     return super(CheckinView, self).form_valid(form)
                 except APIException:
@@ -271,7 +271,7 @@ class DemographicsView(FormView):
             response = {}
             try:
                 response = patient_api.update(patient_id, updated_fields)
-                print response
+
                 updated_patient, created = update_or_create_object(
                     Patient, updated_fields, pk=patient_id)
                 return super(DemographicsView, self).form_valid(form)
