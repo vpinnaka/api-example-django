@@ -7,4 +7,4 @@
 - [x] how long they have been waiting. 
 - [x] the doctor can indicate they are seeing a patient, which stops the “time spent waiting” clock. 
 - [x] It should be able to update when an appointment status changes or a new appointment is scheduled by the receptionist or patient. 
-- [ ] It should also display some summary statistics, like the overall average wait time for all patients they have ever seen.
+- [x] It should also display some summary statistics, like the overall average wait time for all patients they have ever seen.
