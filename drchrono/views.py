@@ -6,10 +6,10 @@ from django.contrib.auth.decorators import login_required
 from django.http import JsonResponse
 from django.core import serializers
 from .models import Doctor, Appointment, Patient
-from .forms import CheckinForm
+from .forms import CheckinForm, DemographicsForm
 from django.utils import timezone
 from datetime import datetime
-from utils import get_object_or_none
+from utils import get_object_or_none, update_or_create_object
 import pytz
 import json
 import settings
@@ -158,33 +158,34 @@ class AppointmentListView(View):
 class CheckinView(FormView):
     template_name = 'checkin.html'
     form_class = CheckinForm
-    success_url = '/checkin_success/'
+    success_url = '/update_demographics/'
 
     def form_valid(self, form):
         # This method is called when valid form data has been POSTed.
         # It should return an HttpResponse.
         first_name = form.cleaned_data.get('first_name')
         last_name = form.cleaned_data.get('last_name')
-        dob = form.cleaned_data.get('date_of_birth')
+        # dob = form.cleaned_data.get('date_of_birth')
+        # TODO: Use ssn to get the patient
         ssn = form.cleaned_data.get('social_security_number')
 
         patient = get_object_or_none(Patient,
                                      first_name=first_name,
                                      last_name=last_name,
-                                     date_of_birth=str(dob)
+                                     social_security_number=str(ssn)
                                      )
         if patient:
             access_token = self.request.session['access_token']
             apppointment_api = AppointmentEndpoint(access_token)
-            appointments = Appointment.objects.filter(patient=patient.id)
+            appointments = Appointment.today.filter(patient=patient.id)
+            updateddate = datetime.now().isoformat()
             for appointment in appointments:
-                appointment.appointment_status = 'Checked In'
-                appointment.checkedin_status = True
-                appointment.checkedin_time = datetime.now()
-                checkedin_appointments = self.request.session.get(
-                    'checkedin_appointment', [])
-                checkedin_appointments.append(appointment.id)
-                updateddate = datetime.now().strftime('%Y-%m-%dT%H:%M:%S')
+                updated_fields = {
+                    'appointment_status': 'Checked In',
+                    'checkedin_status': True,
+                    'checkedin_time': updateddate,
+                }
+
                 data = {
                     'status': 'Checked In',
                     'updated_at': updateddate
@@ -192,8 +193,11 @@ class CheckinView(FormView):
                 response = {}
                 try:
                     response = apppointment_api.update(appointment.id, data)
-                    appointment.save()
-                    self.request.session['checkedin_appointment'] = checkedin_appointments
+                    updated_appointment, created = update_or_create_object(
+                        Appointment, updated_fields, pk=appointment.id)
+                    print response
+                    self.request.session['checkedin_patient'] = patient.id
+                    return super(CheckinView, self).form_valid(form)
                 except APIException:
                     context = {
                         'form': form,
@@ -201,11 +205,86 @@ class CheckinView(FormView):
                     }
                     return render(self.request, "checkin.html", context)
 
-            return super(CheckinView, self).form_valid(form)
+            context = {
+                'form': form,
+                'message': 'Appointment for the Patient not found',
+            }
+            return render(self.request, "checkin.html", context)
 
         context = {
             'form': form,
             'message': 'Patient not found',
+        }
+        return render(self.request, "checkin.html", context)
+
+
+class DemographicsView(FormView):
+    template_name = 'demographics.html'
+    form_class = DemographicsForm
+    success_url = '/checkin_success/'
+
+    def get_initial(self):
+        # Populate patient details
+        initial = {}
+        patient_id = self.request.session.get('checkedin_patient')
+
+        patient = Patient.objects.filter(pk=patient_id).values()[0]
+        if patient:
+            initial = patient
+        return initial
+
+    def form_valid(self, form):
+        # This method is called when valid form data has been POSTed.
+        # It should return an HttpResponse.
+        date_of_birth = form.cleaned_data.get('date_of_birth')
+        gender = form.cleaned_data.get('gender')
+        address = form.cleaned_data.get('address')
+        zip_code = form.cleaned_data.get('zip_code')
+        city = form.cleaned_data.get('city')
+        state = form.cleaned_data.get('state')
+        email = form.cleaned_data.get('email')
+        cell_phone = form.cleaned_data.get('cell_phone')
+        emergency_contact_name = form.cleaned_data.get(
+            'emergency_contact_name')
+        emergency_contact_phone = form.cleaned_data.get(
+            'emergency_contact_phone')
+
+        patient_id = self.request.session.get('checkedin_patient')
+
+        patient = get_object_or_none(Patient, pk=patient_id)
+
+        if patient:
+            access_token = self.request.session.get('access_token')
+            patient_api = PatientEndpoint(access_token)
+
+            updated_fields = {
+                'email': email,
+                'gender': gender,
+                'date_of_birth': date_of_birth,
+                'address': address,
+                'city': city,
+                'state': state,
+                'zip_code': zip_code,
+                'cell_phone': cell_phone,
+            }
+
+            response = {}
+            try:
+                response = patient_api.update(patient_id, updated_fields)
+                print response
+                updated_patient, created = update_or_create_object(
+                    Patient, updated_fields, pk=patient_id)
+                return super(DemographicsView, self).form_valid(form)
+            except APIException:
+                context = {
+                    'form': form,
+                    'message': 'Trouble updating your data, Please consult a staff member',
+                }
+                return render(self.request, "checkin.html", context)
+
+        context = {
+            'form': form,
+            'message': 'Patient demographics not updated, please check with attendent',
         }
         return render(self.request, "checkin.html", context)
 
@@ -222,4 +301,17 @@ class CheckinSuccessView(TemplateView):
         kwargs['doctor'] = Doctor.objects.first()
         kwargs['checkedinno'] = len(
             Appointment.future.filter(checkedin_status=True))
+        return kwargs
+
+
+class AnalyticsView(TemplateView):
+    """
+    Analytics view for doctor to moniter appointments.
+    """
+    template_name = 'analytics.html'
+
+    def get_context_data(self, **kwargs):
+        kwargs = super(AnalyticsView, self).get_context_data(**kwargs)
+
+        kwargs['doctor'] = Doctor.objects.first()
         return kwargs

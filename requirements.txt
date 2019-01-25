@@ -11,3 +11,4 @@ requests-oauthlib==0.5.0
 mysql-python
 ipython
 djangorestframework
+django-widget-tweaks

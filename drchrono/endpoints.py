@@ -164,14 +164,14 @@ class BaseEndpoint(object):
         """
         url = self._url(id)
         self._auth_headers(kwargs)
-        # print url
-        # print data
-        # print kwargs
+        print url
+        print data
+        print kwargs
         if partial:
             response = requests.patch(url, data, **kwargs)
         else:
             response = requests.put(url, data, **kwargs)
-        # print response
+        print response
         return self._json_or_exception(response)
 
     def delete(self, id, **kwargs):
@@ -285,6 +285,8 @@ class AppointmentEndpoint(BaseEndpoint):
 
             if appointment['status'] in ('Complete', 'No Show'):
                 updated_fields['queue_status'] = 'past'
+            if appointment['status'] in ('Checked In', 'Arrived'):
+                updated_fields['checkedin_status'] = True
             updated_appointment, created = utils.update_or_create_object(
                 Appointment, updated_fields, pk=appointment['id'])
 

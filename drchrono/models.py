@@ -85,8 +85,20 @@ class PastAppointmentManager(models.Manager):
         )
 
 
+class TodayAppointmentManager(models.Manager):
+    def get_queryset(self):
+        date = datetime.now()
+        return super(TodayAppointmentManager, self).get_queryset()\
+            .filter(
+                appointment_time__year=date.year,
+                appointment_time__month=date.month,
+                appointment_time__day=date.day,
+        )
+
+
 class Appointment(models.Model):
     objects = models.Manager()  # The default manger
+    today = TodayAppointmentManager()
     current = CurrentAppointmentManager()
     future = FutureAppointmentManager()
     past = PastAppointmentManager()

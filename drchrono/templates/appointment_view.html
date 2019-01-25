@@ -13,12 +13,12 @@
                 </div>
             </div>
         </div>
-        <div class="card-body row" id="appointment_content">
-            <div class="col-6" id="appointment_current">
+        <div class="card-body row d-flex justify-content-between" id="appointment_content">
+            <div class="ml-2" id="appointment_current">
                 {% include './appointment_current.html' %}
             </div>
-            <div class="col-6">
-                <div class="btn-group-vertical float-right">
+            <div class="mr-3">
+                <div class="btn-group-vertical">
                     <button id='insession' class="mt-2 btn btn-primary">In Session</button>
                     <button id='complete' class="mt-2 btn btn-success">Complete</button>
                     <button id='noshow' class="mt-2 btn btn-danger">No Show</button>

@@ -3,13 +3,13 @@
 {% block body %}
 <div class="container h-100">
     <div class="p-5 row h-100 justify-content-center align-items-center">
-        <h1>Welcome {{ doctor.first_name }} {{ doctor.last_name }}</h1>
+        <h1>Welcome Dr. {{ doctor.first_name }} {{ doctor.last_name }}</h1>
     </div>
     <div class="row h-100 justify-content-center align-items-center">
 
         <div class="row">
             <div class="p-5">
-                <a href="{% url 'appointments' %}" class="btn btn-success btn-circle btn-xl">
+                <a href="{% url 'appointments' %}" class="btn btn-primary btn-circle btn-xl">
                     Appointments
                 </a>
             </div>
@@ -18,13 +18,16 @@
                     Kiosk
                 </a>
             </div>
+            <div class="p-5">
+                <a href="{% url 'analytics' %}" class="btn btn-warning btn-circle btn-xl">
+                    Analytics
+                </a>
+            </div>
         </div>
 
     </div>
 
 </div>
-<!-- <div>
-    
-</div> -->
+
 
 {% endblock %}
