@@ -1,0 +1,31 @@
+{% extends "./base.html" %}
+{% load staticfiles %}
+{% load widget_tweaks %}
+{% csrf_token %}
+{% block title %}Welcome to drchrono{% endblock %}
+{% block body %}
+<div id="content" class="container mt-5">
+    <div class="alert alert-success h2 text-center">
+        Please checkin for your appointment here
+    </div>
+    {% if message %}
+    <div class="mt-3 alert alert-danger">
+        {{ message }}
+    </div>
+    {% endif %}
+    <form action="{% url 'checkin' %}" method="post">
+        {% csrf_token %}
+
+        {% for field in form %}
+        <strong style="color:#b30505">{{ field.errors.as_text }}</strong>
+        <div class="form-group">
+            {{ field.label_tag }}
+            {% render_field field class="form-control" placeholder=field.help_text %}
+        </div>
+        {% endfor %}
+
+        <button type="submit" class="btn btn-success">Checkin</button>
+    </form>
+
+</div>
+{% endblock body %}

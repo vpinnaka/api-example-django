@@ -1,17 +1,26 @@
 import requests
 import logging
+import pytz
+from datetime import datetime
+import settings
+from .models import Doctor, Appointment, Patient
+import utils
 
 
-class APIException(Exception): pass
+class APIException(Exception):
+    pass
 
 
-class Forbidden(APIException): pass
+class Forbidden(APIException):
+    pass
 
 
-class NotFound(APIException): pass
+class NotFound(APIException):
+    pass
 
 
-class Conflict(APIException): pass
+class Conflict(APIException):
+    pass
 
 
 ERROR_CODES = {
@@ -74,7 +83,7 @@ class BaseEndpoint(object):
         returns the JSON content or raises an exception, based on what kind of response (2XX/4XX) we get
         """
         if response.ok:
-            if response.status_code != 204: # No Content
+            if response.status_code != 204:  # No Content
                 return response.json()
         else:
             exe = ERROR_CODES.get(response.status_code, APIException)
@@ -100,7 +109,8 @@ class BaseEndpoint(object):
             self.logger.debug("list got page {}".format('url'))
             while url:
                 data = response.json()
-                url = data['next']  # Same as the resource URL, but with the page query parameter present
+                # Same as the resource URL, but with the page query parameter present
+                url = data['next']
                 for result in data['results']:
                     yield result
         else:
@@ -154,10 +164,12 @@ class BaseEndpoint(object):
         """
         url = self._url(id)
         self._auth_headers(kwargs)
+
         if partial:
             response = requests.patch(url, data, **kwargs)
         else:
             response = requests.put(url, data, **kwargs)
+
         return self._json_or_exception(response)
 
     def delete(self, id, **kwargs):
@@ -180,6 +192,40 @@ class BaseEndpoint(object):
 class PatientEndpoint(BaseEndpoint):
     endpoint = "patients"
 
+    # Special parameter requirements for a given resource should be explicitly called out
+    def list(self, params=None, doctor=None, **kwargs):
+        """
+        List patients associated to the given doctor
+        """
+        # Just parameter parsing & checking
+        params = params or {}
+        if doctor:
+            params['doctor'] = doctor
+
+        if 'doctor' not in params:
+            raise Exception("Must provide doctor id")
+        return super(PatientEndpoint, self).list(params, **kwargs)
+
+    def get_and_store_data(self, doctor):
+        patients = self.list(doctor=doctor.id)
+        for patient in patients:
+            updated_fields = {
+                'doctor': doctor,
+                'first_name': patient['first_name'],
+                'last_name': patient['last_name'],
+                'social_security_number': patient['social_security_number'],
+                'email': patient['email'],
+                'gender': patient['gender'],
+                'date_of_birth': patient['date_of_birth'],
+                'address': patient['address'],
+                'city': patient['city'],
+                'state': patient['state'],
+                'zip_code': patient['zip_code'],
+                'cell_phone': patient['cell_phone'],
+            }
+            updated_patient, created = utils.update_or_create_object(
+                Patient, updated_fields, pk=patient['id'])
+
 
 class AppointmentEndpoint(BaseEndpoint):
     endpoint = "appointments"
@@ -189,6 +235,7 @@ class AppointmentEndpoint(BaseEndpoint):
         """
         List appointments on a given date, or between two dates
         """
+        self.logger.debug(date)
         # Just parameter parsing & checking
         params = params or {}
         if start and end:
@@ -197,8 +244,49 @@ class AppointmentEndpoint(BaseEndpoint):
         elif date:
             params['date'] = date
         if 'date' not in params and 'date_range' not in params:
-            raise Exception("Must provide either start & end, or date argument")
+            raise Exception(
+                "Must provide either start & end, or date argument")
         return super(AppointmentEndpoint, self).list(params, **kwargs)
+
+    def get_and_store_data(self, doctor=None, date=None):
+        params = {}
+        # get all the appointments for today from the appointments api endpoint
+
+        if doctor:
+            params['doctor'] = doctor.id
+        else:
+            doctor = utils.get_object_first(Doctor)
+
+        if date == None:
+            date = datetime.now(tz=pytz.timezone(
+                doctor.timezone)).strftime('%Y-%m-%d')
+        appointments = self.list(params=params, date=date)
+        for appointment in appointments:
+            if appointment['status'] in ('Cancelled', 'Rescheduled'):
+                continue
+            patient = utils.get_object_or_none(
+                Patient, id=appointment['patient'])
+            patient_name = '{}, {}'.format(
+                patient.first_name,
+                patient.last_name
+            )
+            updated_fields = {
+                'patient': patient,
+                'patient_name': patient_name,
+                'doctor': doctor,
+                'appointment_time': appointment['scheduled_time'],
+                'appointment_status': appointment['status'],
+                'duration': appointment['duration'],
+                'exam_room': appointment['exam_room'],
+                'reason': appointment['reason'],
+            }
+
+            if appointment['status'] in ('Complete', 'No Show'):
+                updated_fields['queue_status'] = 'past'
+            if appointment['status'] in ('Checked In', 'Arrived'):
+                updated_fields['checkedin_status'] = True
+            updated_appointment, created = utils.update_or_create_object(
+                Appointment, updated_fields, pk=appointment['id'])
 
 
 class DoctorEndpoint(BaseEndpoint):
@@ -212,6 +300,17 @@ class DoctorEndpoint(BaseEndpoint):
 
     def delete(self, id, **kwargs):
         raise NotImplementedError("the API does not allow deleteing doctors")
+
+    def get_and_store_data(self):
+        doctor_details = next(self.list())
+        doctor, created = Doctor.objects.update_or_create(
+            pk=doctor_details['id'],
+            defaults={
+                'first_name': doctor_details['first_name'],
+                'last_name': doctor_details['last_name'],
+                'timezone': doctor_details['timezone'],
+            })
+        return doctor
 
 
 class AppointmentProfileEndpoint(BaseEndpoint):

@@ -1,0 +1,148 @@
+{% extends "./base.html" %}
+{% load staticfiles %}
+{% csrf_token %}
+{% block title %}Welcome to drchrono{% endblock %}
+{% block body %}
+<div class="container">
+    <div class="card mt-5">
+        <div class="card-header">
+            <div class="row">
+                <div class="col-6">Seeing Now</div>
+                <div class="col-6">
+                    <span class="float-right" id='time'>right</span>
+                </div>
+            </div>
+        </div>
+        <div class="card-body row d-flex justify-content-between" id="appointment_content">
+            <div class="ml-2" id="appointment_current">
+                {% include './appointment_current.html' %}
+            </div>
+            <div class="mr-3">
+                <div class="btn-group-vertical">
+                    <button id='insession' class="mt-2 btn btn-primary">In Session</button>
+                    <button id='complete' class="mt-2 btn btn-success">Complete</button>
+                    <button id='noshow' class="mt-2 btn btn-danger">No Show</button>
+                </div>
+            </div>
+
+        </div>
+    </div>
+    <div id='appointment_list'>
+        {% include './appointment_list.html' %}
+    </div>
+</div>
+{% endblock body %}
+{% block script %}
+<script>
+    function getCookie(c_name) {
+        if (document.cookie.length > 0) {
+            c_start = document.cookie.indexOf(c_name + "=");
+            if (c_start != -1) {
+                c_start = c_start + c_name.length + 1;
+                c_end = document.cookie.indexOf(";", c_start);
+                if (c_end == -1) c_end = document.cookie.length;
+                return unescape(document.cookie.substring(c_start, c_end));
+            }
+        }
+        return "";
+    }
+
+    function startTime() {
+        var today = new Date();
+        document.getElementById('time').innerHTML = today.toDateString() + " " + today.toLocaleTimeString();
+        t = setTimeout(function () {
+            startTime()
+        }, 500);
+    }
+
+
+    function getappointments(appointmentlisttype) {
+        console.log(appointmentlisttype);
+        $.ajax({
+            type: "GET",
+            url: "{% url 'appointment_list' %}",
+            data: {
+                'listtype': appointmentlisttype,
+                'csrfmiddlewaretoken': $('input[name="csrfmiddlewaretoken"]').val()
+            },
+            success: function (data) {
+                if (appointmentlisttype.localeCompare('current') == 0) {
+                    if (data.hasOwnProperty("data")) {
+                        $('#appointment_current').html("<h4 class='card-text'>No appointments at this time</h4>")
+                    } else {
+                        $('#appointment_current').html(data);
+                    }
+
+                } else {// Load the templete with future and past appointments
+
+                    $('#appointment_list').html(data);
+                }
+            }
+
+        });
+    }
+
+    function updateappointment(appointmentupdatetype, appointmentstatus) {
+        $.ajax({
+            type: "POST",
+            url: "{% url 'appointment_list' %}",
+            headers: { "X-CSRFToken": getCookie("csrftoken") },
+            data: {
+                'updatetype': appointmentupdatetype,
+                'status': appointmentstatus,
+                'csrfmiddlewaretoken': $('input[name="csrfmiddlewaretoken"]').val()
+            },
+            success: function (data) {
+                if ('status' in data) {
+                    var currentappointment = 'current';
+                    var otherappointments = 'other';
+                    getappointments(currentappointment);
+                    getappointments(otherappointments);
+                }
+            }
+
+        });
+    }
+    $(document).ready(function () {
+        var currentappointment = 'current';
+        var otherappointments = 'other';
+        startTime();
+        getappointments(currentappointment);
+        getappointments(otherappointments);
+        window.setInterval(function () {
+            getappointments(currentappointment);
+            getappointments(otherappointments);
+        }, 60000)
+    });
+
+    $(".btn-group > button.btn").on("click", function () {
+        num = this.innerHTML;
+        alert("Value is " + num);
+    });
+
+    $('#complete').click(function () {
+        var updatetype = 'current';
+        var status = 'Complete';
+        console.log("Appointment complete");
+        updateappointment(updatetype, status);
+        // document.getElementById("noshow").disabled = false;
+        // document.getElementById("insession").disabled = false;
+    });
+    $('#noshow').click(function () {
+        var updatetype = 'current';
+        var status = 'No Show';
+        updateappointment(updatetype, status);
+
+    });
+
+    $('#insession').click(function () {
+        var updatetype = 'current';
+        var status = 'In Session';
+        updateappointment(updatetype, status);
+        // document.getElementById("complete").disabled = false;
+        // document.getElementById("noshow").disabled = true;
+        // document.getElementById("insession").disabled = true;
+
+    });
+</script>
+{% endblock script %}
